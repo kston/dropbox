@@ -8,10 +8,14 @@ class Controller {
     this.progressBarEl = document.querySelector('.mc-progress-bar-fg');
     this.nameFileEl = document.querySelector('.filename');
     this.timeleftEl = document.querySelector('.timeleft');
+    this.listFilesEl = document.querySelector('#list-of-files-and-directories');
 
 
     this.connectFirebase();
     this.initEvent();
+
+    this.readFiles();
+
   }
 
   connectFirebase() {
@@ -374,7 +378,73 @@ class Controller {
 
   }
 
+  readFiles() {
 
+    this.getFirebaseRef().on('value', snapshot => {
+
+      this.listFilesEl.innerHTML = '';
+
+      snapshot.forEach(item => {
+
+        let key = item.key;
+        let data = item.val();
+
+        this.listFilesEl.appendChild(this.getFileView(data, key))
+      })
+
+    })
+  }
+
+  initEventsLi(li) {
+
+    li.addEventListener('click', e => {
+
+
+      if (e.shiftKey) {
+
+        let firtLi = this.listFilesEl.querySelector('li.selected');
+
+        if (firtLi) {
+
+          let indexStart, indexEnd;
+
+          let lis = li.parentElement.childNodes;
+
+          lis.forEach((el, index) => {
+
+            if (firtLi === el) indexStart = index;
+            if (li === el) indexEnd = index;
+
+          });
+
+          let index = [indexStart, indexEnd].sort();
+
+          lis.forEach((el, i) => {
+
+            if (i >= index[0] && i <= index[1]) {
+
+              el.classList.add('selected');
+            }
+
+          });
+
+          return true;
+
+        }
+      }
+
+      if (!e.crtlKey) {
+
+        this.listFilesEl.querySelectorAll('li.selected').forEach(el => {
+
+          el.classList.remove('selected');
+
+        })
+      }
+
+      li.classList.toggle('selected');
+    })
+  }
 
 
 
