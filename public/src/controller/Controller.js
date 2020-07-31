@@ -2,6 +2,9 @@ class Controller {
 
   constructor() {
 
+
+    this.onselectionchange = new Event('selectionchange');
+
     this.btnFileEl = document.querySelector('#btn-send-file');
     this.inputFileEl = document.querySelector('#files');
     this.barModalEl = document.querySelector('#react-snackbar-root');
@@ -9,6 +12,12 @@ class Controller {
     this.nameFileEl = document.querySelector('.filename');
     this.timeleftEl = document.querySelector('.timeleft');
     this.listFilesEl = document.querySelector('#list-of-files-and-directories');
+
+
+    this.btnNewFolder = document.querySelector('#btn-new-folder');
+    this.btnRename = document.querySelector('#btn-rename');
+    this.btnDelete = document.querySelector('#btn-delete');
+
 
 
     this.connectFirebase();
@@ -36,7 +45,59 @@ class Controller {
     //firebase.analytics();
   }
 
+
+  getSelection() {
+
+    return this.listFilesEl.querySelectorAll('li.selected');
+
+  }
+
   initEvent() {
+
+
+    this.btnRename.addEventListener('click', e => {
+
+      let li = this.getSelection()[0];
+
+      let file = JSON.parse(li.dataset.file);
+
+      let name = prompt("Renomear o arquivo:", file.name);
+
+      if (name) {
+
+        file.name = name;
+
+        this.getFirebaseRef().child(li.dataset.key).set(file);
+
+      }
+
+    });
+
+
+    this.listFilesEl.addEventListener('selectionchange', e => {
+
+      switch (this.getSelection().length) {
+
+        case 0:
+          this.btnDelete.style.display = 'none';
+          this.btnRename.style.display = 'none';
+          break;
+
+        case 1:
+          this.btnDelete.style.display = 'block';
+          this.btnRename.style.display = 'block';
+          break;
+
+        default:
+          this.btnDelete.style.display = 'block';
+          this.btnRename.style.display = 'none';
+
+      }
+
+    });
+
+
+
     this.btnFileEl.addEventListener('click', (e) => {
 
       this.inputFileEl.click();
@@ -428,6 +489,7 @@ class Controller {
 
           });
 
+          this.listFilesEl.dispatchEvent(this.onselectionchange);
           return true;
 
         }
@@ -443,6 +505,8 @@ class Controller {
       }
 
       li.classList.toggle('selected');
+
+      this.listFilesEl.dispatchEvent(this.onselectionchange);
     })
   }
 
