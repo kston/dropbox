@@ -45,6 +45,42 @@ class Controller {
     //firebase.analytics();
   }
 
+  ajax(url, method = 'GET', formData = new FormData(), onprogress = function () { }, onloadstart = function () { }) {
+
+    return new Promise((resolve, reject) => {
+
+      let ajax = new XMLHttpRequest();
+
+      ajax.open(method, url);
+
+      ajax.onload = e => {
+
+        try {
+
+          resolve(JSON.parse(ajax.responseText));
+
+        } catch (e) {
+
+          reject(e);
+
+        }
+      }
+
+      ajax.onerror = e => {
+
+        reject(e);
+      }
+
+      ajax.upload.onprogress = onprogress;
+
+
+      onloadstart();
+
+      ajax.send(formData)
+
+    })
+
+  }
 
   getSelection() {
 
@@ -52,7 +88,39 @@ class Controller {
 
   }
 
+  removeTask() {
+
+    let promises = [];
+
+    this.getSelection().forEach(li => {
+
+      let file = JSON.parse(li.dataset.file);
+
+      let key = li.dataset.key;
+
+      console.log(`file: ${file.path}`, `key: ${key}`);
+
+      let formData = new FormData();
+
+      formData.append('path', file.path);
+      formData.append('key', key);
+
+      this.getFirebaseRef().child(key).remove();
+      promises.push(this.ajax('/file', 'DELETE', formData))
+
+
+    });
+
+    return Promise.all(promises)
+  }
+
   initEvent() {
+
+
+    this.btnDelete.addEventListener('click', e => {
+
+      this.removeTask();
+    });
 
 
     this.btnRename.addEventListener('click', e => {
@@ -153,53 +221,24 @@ class Controller {
 
     [...files].forEach(file => {
 
-      promises.push(new Promise((resolve, reject) => {
+      let formData = new FormData();
 
-        let ajax = new XMLHttpRequest();
+      formData.append('input-file', file);
 
-        ajax.open('POST', '/upload');
+      promises.push(this.ajax('/upload', 'POST', formData, () => {
 
-        ajax.onload = e => {
-
-
-
-          try {
-
-            resolve(JSON.parse(ajax.responseText));
-
-          } catch (e) {
-
-            reject(e);
-
-          }
-        }
-
-        ajax.onerror = e => {
+        this.upLoadProgress(event, file);
 
 
-          reject(e);
-        }
-
-        ajax.upload.onprogress = (e) => {
-
-          this.upLoadProgress(event, file);
-
-        }
-
-        let formData = new FormData();
-
-        formData.append('input-file', file);
+      }, () => {
 
         this.startUploadTime = Date.now();
 
-        ajax.send(formData)
+      }));
 
-      }))
-
-
-    })
-
+    });
     return Promise.all(promises);
+
 
   }
 
