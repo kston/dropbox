@@ -90,6 +90,64 @@ class Controller {
 
   }
 
+  removeFolderTask(ref, name, key) {
+
+    return new Promise((resolve, reject) => {
+
+      let folderRef = this.getFirebaseRef(ref + '/' + name);
+
+      folderRef.on('value', snapshot => {
+
+        folderRef.off('value');
+
+        snapshot.forEach(item => {
+
+          let data = item.val();
+          data.key = item.key;
+
+          if (data.type === 'folder') {
+
+            this.removeFolderTask(ref + '/' + name, data.name).then(() => {
+
+              resolve({
+                fields: {
+                  key: data.key
+                }
+              });
+
+            }).catch(err => {
+              reject(err);
+            });
+
+          } else if (data.type) {
+
+            this.removeFile(ref + '/' + name, data.name).then(() => {
+
+              resolve({
+                fields: {
+                  key: data.key
+                }
+              });
+
+            }).catch(err => {
+
+              reject(err);
+            });
+
+          }
+
+        });
+
+        folderRef.remove();
+
+
+
+      });
+
+    });
+
+  }
+
   removeTask() {
 
     let promises = [];
@@ -101,27 +159,48 @@ class Controller {
       let key = li.dataset.key;
 
       this.getFirebaseRef().child(key).remove();
+
+
       promises.push(new Promise((resolve, reject) => {
 
-        let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
 
-        fileRef.delete().then(() => {
+        if (file.type === 'folder') {
 
-          resolve({
-            fields: {
-              key
-            }
+          this.removeFolderTask(this.currentFolder.join('/'), file.name).then(() => {
+
+            resolve({
+              fields: {
+                key
+              }
+            })
           })
-        }).catch(err => {
-          reject(err);
-        })
+
+        } else if (data.type)
+
+          this.removeFile(this.currentFolder.join('/'), data.name).then(() => {
+
+            resolve({
+              fields: {
+                key
+              }
+            })
+
+          }).catch(err => {
+            reject(err);
+          })
 
       }))
-
 
     });
 
     return Promise.all(promises)
+  }
+
+  removeFile(ref, name) {
+
+    let fileRef = firebase.storage().ref(ref).child(name);
+
+    return fileRef.delete();
   }
 
   initEvent() {
