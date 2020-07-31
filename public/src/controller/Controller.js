@@ -189,15 +189,25 @@ class Controller {
 
     this.inputFileEl.addEventListener('change', (e) => {
 
-      this.upLoadFile(e.target.files).then(responses => {
+      this.btnFileEl.disabled = true;
 
-        this.btnFileEl.disabled = true;
+      this.upLoadFile(e.target.files).then(responses => {
 
         responses.forEach(resp => {
 
-          this.getFirebaseRef().push().set(resp.files['input-file']);
+          resp.ref.getDownloadURL().then(data => {
 
-        })
+            this.getFirebaseRef().push().set({
+              name: resp.name,
+              type: resp.contentType,
+              path: data,
+              size: resp.size
+            });
+
+          });
+
+        });
+
 
         this.uploadComplete();
 
@@ -238,22 +248,44 @@ class Controller {
 
     [...files].forEach(file => {
 
-      let formData = new FormData();
+      promises.push(new Promise((resolve, reject) => {
 
-      formData.append('input-file', file);
+        let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
+        let task = fileRef.put(file);
 
-      promises.push(this.ajax('/upload', 'POST', formData, () => {
-
-        this.upLoadProgress(event, file);
+        task.on('state_changed', snapshot => {
 
 
-      }, () => {
+          this.upLoadProgress({
 
-        this.startUploadTime = Date.now();
+            loaded: snapshot.bytesTransferred,
+            total: snapshot.totalBytes
+
+          }, file);
+
+        }, error => {
+
+          console.error(error);
+          reject(error);
+
+        }, () => {
+
+          fileRef.getMetadata().then(metadata => {
+
+            resolve(metadata);
+
+          }).catch(err => {
+
+            reject(err);
+
+          });
+
+        });
 
       }));
 
     });
+
     return Promise.all(promises);
 
 
