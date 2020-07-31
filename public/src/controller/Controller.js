@@ -100,8 +100,6 @@ class Controller {
 
       let key = li.dataset.key;
 
-      console.log(`file: ${file.path}`, `key: ${key}`);
-
       let formData = new FormData();
 
       formData.append('path', file.path);
